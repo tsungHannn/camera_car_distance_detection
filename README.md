@@ -1,3 +1,13 @@
+# 中科院 - 偵測隧道中前後汽車距離
+- 目前是檢測車輛底部，判斷汽車位置，並使用定位點(貓眼石、車道線等)作為輔助。
+- [其他檔案](https://mailntustedutw.sharepoint.com/:f:/s/MVCLab/EgpZfDd8fylJoMabVcW112kB2iCsODBwt-N2q0OWfJofeA?e=fSD9xp)
+
+## Car bottom detection
+- 用 FusionCalib 的第一步進一步改良: 原先的演算法計算量大，沒辦法達到 FPS 10。
+- 作法: 先做 Object segmentation，之後用消失點來計算車輛的底部，可參考論文。
+- 論文、影片等其他檔案放在雲端上。
+
+
 # FusionCalib
 
 If you use the code, please cite our paper:
