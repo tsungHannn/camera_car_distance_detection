@@ -13,24 +13,25 @@ from ultralytics import YOLO
 # COCO Class names
 # Index of the class in the list is its ID. For example, to get ID of
 # the teddy bear class, use: class_names.index('teddy bear')
-class_names = [
-    'BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
-    'bus', 'train', 'truck', 'boat', 'traffic light',
-    'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird',
-    'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear',
-    'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie',
-    'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
-    'kite', 'baseball bat', 'baseball glove', 'skateboard',
-    'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup',
-    'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-    'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
-    'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed',
-    'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote',
-    'keyboard', 'cell phone', 'microwave', 'oven', 'toaster',
-    'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors',
-    'teddy bear', 'hair drier', 'toothbrush']
+# class_names = [
+#     'BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
+#     'bus', 'train', 'truck', 'boat', 'traffic light',
+#     'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird',
+#     'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear',
+#     'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie',
+#     'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+#     'kite', 'baseball bat', 'baseball glove', 'skateboard',
+#     'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup',
+#     'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+#     'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
+#     'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed',
+#     'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote',
+#     'keyboard', 'cell phone', 'microwave', 'oven', 'toaster',
+#     'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors',
+#     'teddy bear', 'hair drier', 'toothbrush']
 
-# class_names = {2:'car', 3:'motorcycle', 5:'bus', 7:'truck'}
+# YOLO Class Names
+class_names = {2:'car', 3:'motorcycle', 5:'bus', 7:'truck'}
 
 def resize_frame_and_vp(frame, vp, scale_factor):
     """
@@ -118,8 +119,11 @@ def draw_2d_detections(image, boxes, masks, class_ids, scores, threshold=0.7):
             continue
             
         class_id = class_ids[i]
-        if class_id not in [3,4,6,8]:
-            continue
+
+        # Coco 類別篩選
+        # if class_id not in [3,4,6,8]:
+        #     continue
+
         color = colors[i % len(colors)]
         
         # 繪製遮罩
@@ -239,8 +243,10 @@ def Cal3dBBox(boxes, masks, class_ids, scores, vp):
 
     for i in range(N):
         class_id = class_ids[i]
-        if class_id not in [3, 4, 6, 8]:
-            continue
+
+        # Coco 類別篩選
+        # if class_id not in [3, 4, 6, 8]:
+        #     continue
         
         if not np.any(boxes[i]):
             continue
@@ -414,9 +420,9 @@ def yolo_to_maskrcnn_format(yolo_results, img_shape):
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataPath', type=str, help='Folder which include output.avi and config',
-                        default='tunnel_data_south16_test')
+                        default='data/tunnel_data_south16_test')
     parser.add_argument('--yolo_model',help='YOLO model path.',
-                        default='yolo11m-seg.pt')
+                        default='yolo11m-seg.pt') # 新加的參數
     parser.add_argument('--rcnn_model',help='Mask R-CNN model path.',
                         default='mask_rcnn_coco.h5')
     parser.add_argument("--save-vid",help='Draw the detected bottoms on the video and save it to another video file', action='store_true',
@@ -424,7 +430,7 @@ if __name__=='__main__':
     parser.add_argument("--save-2d-vid",help='Draw 2D detection results on the video and save it', action='store_true',
                         default=True)
     parser.add_argument("--scale",help='Scale factor for input resolution (e.g., 0.5 for half size, 1.0 for original)', 
-                       type=float, default=1.0)
+                       type=float, default=1.0) # 之前有試過調整input size，看能不能加速 → resize的部分寫的不一定正確，但還是放上來供參考
     args = parser.parse_args()
 
     ####### parameters ##########
@@ -460,36 +466,36 @@ if __name__=='__main__':
     vp_original=[json.loads(config.get('vps', 'vp{}'.format(i))) for i in range(1,4)]
     print(f"原始消失點: {vp_original}")
 
-    # Create model object in inference mode.
-    from mrcnn.config import Config
-    class InferenceConfig(Config):
-        # Set batch size to 1 since we'll be running inference on
-        # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
-        NAME = 'coco'
-        GPU_COUNT = 1
-        IMAGES_PER_GPU = 1
-        NUM_CLASSES = 1 + 80
+    # # Create model object in inference mode.
+    # from mrcnn.config import Config
+    # class InferenceConfig(Config):
+    #     # Set batch size to 1 since we'll be running inference on
+    #     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
+    #     NAME = 'coco'
+    #     GPU_COUNT = 1
+    #     IMAGES_PER_GPU = 1
+    #     NUM_CLASSES = 1 + 80
 
-    configCOCO = InferenceConfig()
-    configCOCO.display()
+    # configCOCO = InferenceConfig()
+    # configCOCO.display()
 
-    # 原本的 Mask R-CNN 實作
-    # Create model object in inference mode.
-    from mrcnn import utils
-    import mrcnn.model as modellib
-    model = modellib.MaskRCNN(mode="inference", model_dir='logs', config=configCOCO)
+    # # 原本的 Mask R-CNN 實作
+    # # Create model object in inference mode.
+    # from mrcnn import utils
+    # import mrcnn.model as modellib
+    # model = modellib.MaskRCNN(mode="inference", model_dir='logs', config=configCOCO)
 
-    # Download COCO trained weights from Releases if needed
-    if not os.path.exists(COCO_MODEL_PATH):
-        utils.download_trained_weights(COCO_MODEL_PATH)
+    # # Download COCO trained weights from Releases if needed
+    # if not os.path.exists(COCO_MODEL_PATH):
+    #     utils.download_trained_weights(COCO_MODEL_PATH)
 
-    # Load weights trained on MS-COCO
-    model.load_weights(COCO_MODEL_PATH, by_name=True)
+    # # Load weights trained on MS-COCO
+    # model.load_weights(COCO_MODEL_PATH, by_name=True)
 
 
-    # # YOLO
-    # model = YOLO(YOLO_MODEL_PATH)
-    # print("模型載入完成")
+    # YOLO
+    model = YOLO(YOLO_MODEL_PATH)
+    print("模型載入完成")
 
     # Solve and save
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -532,11 +538,13 @@ if __name__=='__main__':
 
         # 轉換為 RGB 進行偵測
         frame_rgb = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
-        results = model.detect([frame_rgb], verbose=0) # coco detection
-        r = results[0]
 
-        # yolo_results = model(frame_resized, verbose=False, classes=[2,3,5,7])  # 只偵測 car, motorcycle, bus, truck
-        # r = yolo_to_maskrcnn_format(yolo_results, frame_resized.shape)
+        # 使用 Mask R-CNN 偵測
+        # results = model.detect([frame_rgb], verbose=0) # coco detection
+        # r = results[0]
+
+        yolo_results = model(frame_resized, verbose=False, classes=[2,3,5,7])  # 只偵測 car, motorcycle, bus, truck
+        r = yolo_to_maskrcnn_format(yolo_results, frame_resized.shape)
         
 
         time2 = time.time()
@@ -603,6 +611,7 @@ if __name__=='__main__':
             out_3d.write(frame_3d)
         
         time5 = time.time()
+        # 每個階段的時間統計
         # print('time1 (detection): {:.4f}s, time2 (3D bottom): {:.4f}s, time3 (scaling & drawing): {:.4f}s, time4: {:.4f}s'.format(
         #     time2 - time1, time3 - time2, time4 - time3, time5 - time4))
         # print(f'frame {idx} finished. Cal3dBBox time: {cal3d_time:.4f}s')
