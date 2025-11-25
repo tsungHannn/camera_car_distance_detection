@@ -10,84 +10,9 @@ import time
 from tqdm import tqdm
 from ultralytics import YOLO
 
-# COCO Class names
-# Index of the class in the list is its ID. For example, to get ID of
-# the teddy bear class, use: class_names.index('teddy bear')
-# class_names = [
-#     'BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
-#     'bus', 'train', 'truck', 'boat', 'traffic light',
-#     'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird',
-#     'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear',
-#     'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie',
-#     'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
-#     'kite', 'baseball bat', 'baseball glove', 'skateboard',
-#     'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup',
-#     'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-#     'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
-#     'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed',
-#     'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote',
-#     'keyboard', 'cell phone', 'microwave', 'oven', 'toaster',
-#     'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors',
-#     'teddy bear', 'hair drier', 'toothbrush']
-
 # YOLO Class Names
 class_names = {2:'car', 3:'motorcycle', 5:'bus', 7:'truck'}
 
-def resize_frame_and_vp(frame, vp, scale_factor):
-    """
-    調整影像和消失點的解析度
-    
-    Args:
-        frame: 原始影像
-        vp: 消失點列表 [[x1,y1], [x2,y2], [x3,y3]]
-        scale_factor: 縮放因子 (例如 0.5 代表縮小為原來的一半)
-    
-    Returns:
-        resized_frame: 調整後的影像
-        resized_vp: 調整後的消失點
-    """
-    # 調整影像大小
-    height, width = frame.shape[:2]
-    new_width = int(width * scale_factor)
-    new_height = int(height * scale_factor)
-    resized_frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
-    
-    # 調整消失點座標
-    resized_vp = [[int(x * scale_factor), int(y * scale_factor)] for x, y in vp]
-    
-    return resized_frame, resized_vp
-
-def scale_back_results(boxes, masks, scale_factor, original_shape):
-    """
-    將偵測結果從縮放後的解析度還原到原始解析度
-    
-    Args:
-        boxes: 邊界框 [N, (y1, x1, y2, x2)]
-        masks: 遮罩 [height, width, N]
-        scale_factor: 縮放因子
-        original_shape: 原始影像尺寸 (height, width)
-    
-    Returns:
-        scaled_boxes: 還原後的邊界框
-        scaled_masks: 還原後的遮罩
-    """
-    # 還原邊界框座標
-    scaled_boxes = boxes / scale_factor
-    scaled_boxes = scaled_boxes.astype(np.int32)
-    
-    # 還原遮罩大小
-    if masks.shape[2] > 0:
-        scaled_masks = np.zeros((original_shape[0], original_shape[1], masks.shape[2]), dtype=bool)
-        for i in range(masks.shape[2]):
-            scaled_masks[:, :, i] = cv2.resize(
-                masks[:, :, i].astype(np.uint8), 
-                (original_shape[1], original_shape[0]), 
-                interpolation=cv2.INTER_NEAREST
-            ).astype(bool)
-    else:
-        scaled_masks = masks
-    
-    return scaled_boxes, scaled_masks
 
 def apply_mask(image, mask, color, alpha=0.5):
     """在影像上套用半透明遮罩"""
@@ -420,31 +345,20 @@ def yolo_to_maskrcnn_format(yolo_results, img_shape):
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataPath', type=str, help='Folder which include output.avi and config',
-                        default='data/tunnel_data_south16_test')
+                        default='data/tunnel_data_south26')
     parser.add_argument('--yolo_model',help='YOLO model path.',
-                        default='yolo11m-seg.pt') # 新加的參數
-    parser.add_argument('--rcnn_model',help='Mask R-CNN model path.',
-                        default='mask_rcnn_coco.h5')
+                        default='yolo11m-seg.pt') 
     parser.add_argument("--save-vid",help='Draw the detected bottoms on the video and save it to another video file', action='store_true',
                         default=True)
     parser.add_argument("--save-2d-vid",help='Draw 2D detection results on the video and save it', action='store_true',
                         default=True)
-    parser.add_argument("--scale",help='Scale factor for input resolution (e.g., 0.5 for half size, 1.0 for original)', 
-                       type=float, default=1.0) # 之前有試過調整input size，看能不能加速 → resize的部分寫的不一定正確，但還是放上來供參考
     args = parser.parse_args()
 
     ####### parameters ##########
     DATA_PATH=args.dataPath
-    COCO_MODEL_PATH=args.rcnn_model
     YOLO_MODEL_PATH=args.yolo_model
     STORE_VID_FLAG=args.save_vid
     SAVE_2D_VID_FLAG=args.save_2d_vid
-    SCALE_FACTOR=args.scale
-
-
-    print(f"使用縮放因子: {SCALE_FACTOR}")
-    if SCALE_FACTOR != 1.0:
-        print(f"注意: 影像將被縮放至原始大小的 {SCALE_FACTOR*100:.1f}%")
 
     ########## Load video and config ###########
     if not os.path.exists('{}/output.mp4'.format(DATA_PATH)):
@@ -466,33 +380,6 @@ if __name__=='__main__':
     vp_original=[json.loads(config.get('vps', 'vp{}'.format(i))) for i in range(1,4)]
     print(f"原始消失點: {vp_original}")
 
-    # # Create model object in inference mode.
-    # from mrcnn.config import Config
-    # class InferenceConfig(Config):
-    #     # Set batch size to 1 since we'll be running inference on
-    #     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
-    #     NAME = 'coco'
-    #     GPU_COUNT = 1
-    #     IMAGES_PER_GPU = 1
-    #     NUM_CLASSES = 1 + 80
-
-    # configCOCO = InferenceConfig()
-    # configCOCO.display()
-
-    # # 原本的 Mask R-CNN 實作
-    # # Create model object in inference mode.
-    # from mrcnn import utils
-    # import mrcnn.model as modellib
-    # model = modellib.MaskRCNN(mode="inference", model_dir='logs', config=configCOCO)
-
-    # # Download COCO trained weights from Releases if needed
-    # if not os.path.exists(COCO_MODEL_PATH):
-    #     utils.download_trained_weights(COCO_MODEL_PATH)
-
-    # # Load weights trained on MS-COCO
-    # model.load_weights(COCO_MODEL_PATH, by_name=True)
-
-
     # YOLO
     model = YOLO(YOLO_MODEL_PATH)
     print("模型載入完成")
@@ -504,9 +391,6 @@ if __name__=='__main__':
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    print(f"原始影片解析度: {width}x{height}")
-    if SCALE_FACTOR != 1.0:
-        print(f"處理解析度: {int(width*SCALE_FACTOR)}x{int(height*SCALE_FACTOR)}")
 
     out_3d = None
     out_2d = None
@@ -527,21 +411,13 @@ if __name__=='__main__':
         frame_original = frame.copy()
         original_shape = frame.shape[:2]  # (height, width)
         
-        # 調整影像和消失點解析度
-        if SCALE_FACTOR != 1.0:
-            frame_resized, vp_resized = resize_frame_and_vp(frame, vp_original, SCALE_FACTOR)
-        else:
-            frame_resized = frame
-            vp_resized = vp_original
-        
+        frame_resized = frame
+        vp_resized = vp_original
+
         time1 = time.time()
 
         # 轉換為 RGB 進行偵測
         frame_rgb = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
-
-        # 使用 Mask R-CNN 偵測
-        # results = model.detect([frame_rgb], verbose=0) # coco detection
-        # r = results[0]
 
         yolo_results = model(frame_resized, verbose=False, classes=[2,3,5,7])  # 只偵測 car, motorcycle, bus, truck
         r = yolo_to_maskrcnn_format(yolo_results, frame_resized.shape)
@@ -562,30 +438,17 @@ if __name__=='__main__':
         ret_3d_scaled = []
         for item in ret_3d:
             item_scaled = item.copy()
-            if SCALE_FACTOR != 1.0:
-                # 還原 box 座標
-                item_scaled['box'] = (item['box'] / SCALE_FACTOR).astype(np.int32)
-                # 還原 bottom 座標
-                item_scaled['bottom'] = item['bottom'] / SCALE_FACTOR
             ret_3d_scaled.append(item_scaled)
         
         rets.append(ret_3d_scaled)
 
         time4 = time.time()
         
-        # 如果有縮放,將偵測結果還原到原始解析度用於繪圖
-        if SCALE_FACTOR != 1.0:
-            boxes_scaled, masks_scaled = scale_back_results(
-                r['rois'], r['masks'], SCALE_FACTOR, original_shape
-            )
-        else:
-            boxes_scaled = r['rois']
-            masks_scaled = r['masks']
+        boxes_scaled = r['rois']
+        masks_scaled = r['masks']
 
         # 繪製 2D 偵測結果 (使用原始解析度)
         if SAVE_2D_VID_FLAG:
-            # frame_2d = draw_2d_detections(frame_original.copy(), boxes_scaled, masks_scaled, 
-            #                              r['class_ids'], r['scores'])
             frame_2d = draw_2d_masks(frame_original.copy(), masks_scaled)
             if not out_2d:
                 out_2d = cv2.VideoWriter(os.path.join(DATA_PATH, 'output-2d-detection.avi'), 
@@ -612,20 +475,14 @@ if __name__=='__main__':
         
         time5 = time.time()
         # 每個階段的時間統計
-        # print('time1 (detection): {:.4f}s, time2 (3D bottom): {:.4f}s, time3 (scaling & drawing): {:.4f}s, time4: {:.4f}s'.format(
-        #     time2 - time1, time3 - time2, time4 - time3, time5 - time4))
-        # print(f'frame {idx} finished. Cal3dBBox time: {cal3d_time:.4f}s')
+        print('time1 (detection): {:.4f}s, time2 (3D bottom): {:.4f}s, time3 (scaling & drawing): {:.4f}s, time4: {:.4f}s'.format(
+            time2 - time1, time3 - time2, time4 - time3, time5 - time4))
+        print("fps: {:.2f}".format(1.0 / (time5 - time1)))
         idx += 1
         tqdm_bar.update(1)
 
     
-    # 輸出效能統計
-    if frame_count > 0:
-        avg_cal3d_time = total_cal3d_time / frame_count
-        print(f'\n效能統計:')
-        print(f'處理幀數: {frame_count}')
-        print(f'Cal3dBBox 平均時間: {avg_cal3d_time:.4f}s/frame')
-        print(f'Cal3dBBox 總時間: {total_cal3d_time:.2f}s')
+
     
     print('savePath=', DATA_PATH)
     
