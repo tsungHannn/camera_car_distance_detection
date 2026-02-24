@@ -1,4 +1,3 @@
-data/
 yolo11m-seg.pt
 mask_rcnn_coco.h5
 .vscode/

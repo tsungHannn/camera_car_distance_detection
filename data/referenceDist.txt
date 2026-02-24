@@ -1,0 +1,7 @@
+# quad points: x y
+p0 1045 647
+p1 598 235
+p2 206 235
+p3 129 649
+height_m: 50.0
+width_m: 7.0
