@@ -19,12 +19,13 @@ import cv2
 # vp3 = [167.88293, 5259.986]
 
 # 雪隧 south26
-vp1 = [7912.975, 861.16046]
-vp2 = [356.13965, -6.647522]
-vp3 = [70.93384, 5435.4043]
+vp1 = [35935.2,     2948.0808]
+vp2 = [ 616.9469,  -101.96484]
+vp3 = [ 304.972,  4359.4844]
+
 
 # 读取图像
-image_path = 'data/tunnel_data_south26/output.png'  # 替换为你图像的路径
+image_path = 'lane.png'  # 替换为你图像的路径
 image = cv2.imread(image_path)
 
 # 将图像转换为 RGB（OpenCV 读取的图像是 BGR）
