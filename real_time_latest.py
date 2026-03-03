@@ -136,7 +136,9 @@ def Cal3dBBox(boxes, masks, class_ids, scores, vp):
             c2 = t1 if t1[1] < t2[1] else t2
             t1, t2 = lineIntersection(vp_arr[0], vp_arr[0]+edg[0][0], vp_arr[2], vp_arr[2]+edg[2][1]), lineIntersection(vp_arr[1], vp_arr[1]+edg[1][0], vp_arr[2], vp_arr[2]+edg[2][1])
             c3 = t1 if t1[1] < t2[1] else t2
-            c4 = lineIntersection(vp_arr[0], c2, vp_arr[1], c3) if isinstance(lineIntersection(vp_arr[0], c1, vp_arr[0], c2), bool) else lineIntersection(vp_arr[0], c3, vp_arr[1], c2)
+            # c4 = lineIntersection(vp_arr[0], c2, vp_arr[1], c3) if isinstance(lineIntersection(vp_arr[0], c1, vp_arr[0], c2), bool) else lineIntersection(vp_arr[0], c3, vp_arr[1], c2)
+            # 修正: c4 應該是從 vp[0]、c2 還有 vp[1]、c3 這兩條線的交點
+            c4 = lineIntersection(vp_arr[0], c2, vp_arr[1], c3)
         now['bottom'] = np.array([c1, c2, c3, c4]).reshape([-1, 2])
         ret.append(now)
     return ret
@@ -319,6 +321,32 @@ if __name__=='__main__':
         time4 = time.time() 
         if SAVE_2D_VID_FLAG:
             frame_2d = draw_2d_masks(frame_original.copy(), r['masks'])
+            
+            # 繪製車道範圍 (參考用)
+            if dist_manager and dist_manager.lanes:
+                for lname, poly in dist_manager.lanes.items():
+                    cv2.polylines(frame_2d, [poly], isClosed=True, color=(0, 255, 255), thickness=1)
+                    cv2.putText(frame_2d, lname, tuple(poly[0][0]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+            
+            # 繪製車輛底面框
+            for item in ret_3d_scaled:
+                if np.any(item['bottom'] < 0): continue
+                pts = item['bottom']
+                for k in range(4):
+                    for l in range(k+1, 4): cv2.line(frame_2d, tuple(pts[k].astype(int)), tuple(pts[l].astype(int)), (255, 255, 255), 2)
+            
+            # 繪製距離測量結果
+            for data in drawing_data:
+                p1, p2, color, dist_m = data['p1'], data['p2'], data['color'], data['dist']
+                cv2.line(frame_2d, p1, p2, color, 2)
+                cv2.circle(frame_2d, p1, 4, color, -1)
+                cv2.circle(frame_2d, p2, 4, color, -1)
+                mid_pt = ((p1[0]+p2[0])//2, (p1[1]+p2[1])//2)
+                label = f"{dist_m:.2f}m"
+                (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
+                cv2.rectangle(frame_2d, (mid_pt[0]-2, mid_pt[1]-th-2), (mid_pt[0]+tw+2, mid_pt[1]+2), (0,0,0), -1)
+                cv2.putText(frame_2d, label, mid_pt, cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            
             if not out_2d: out_2d = cv2.VideoWriter(f'{DATA_PATH}/realtime2d.avi', fourcc, fps, (width, height))
             out_2d.write(frame_2d)
 
