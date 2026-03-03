@@ -216,8 +216,9 @@ def Cal3dBBox(boxes, masks, class_ids, scores, vp):
             #     print("vp_arr[0]:", vp_arr[0], "c1:", c1, "c2:", c2)
             #     print(lineIntersection(vp_arr[0], c1, vp_arr[0], c2))
             # input("Press Enter to continue...")
-            # # 修正: c4 应该是从 vp[0] 经过 c2，与从 vp[1] 经过 c3 的线的交点
-            # c4 = lineIntersection(vp_arr[0], c2, vp_arr[1], c3)
+            # # c4 = lineIntersection(vp_arr[0], c2, vp_arr[1], c3) if isinstance(lineIntersection(vp_arr[0], c1, vp_arr[0], c2), bool) else lineIntersection(vp_arr[0], c3, vp_arr[1], c2)
+            # 修正: c4 應該是從 vp[0]、c2 還有 vp[1]、c3 這兩條線的交點
+            c4 = lineIntersection(vp_arr[0], c2, vp_arr[1], c3)
 
 
             if c4 is False:
