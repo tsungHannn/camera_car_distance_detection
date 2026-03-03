@@ -23,6 +23,18 @@
 使用消失點、物件分割來計算車輛底盤位置
 - `pip install lu-vp-detect`
 - `python vp_detect.py --image-path lane.jpg`：會輸出三個消失點，把消失點貼到 `data/config` 裡面(用image coordinates)
+  <details>
+  <summary> 執行教學 </summary>
+
+
+  - 可以開 --use-roi，執行時會先開啟一個視窗來圈選ROI，把要偵測消失點的範圍框起來(如果道路有轉彎的話可能偵測會失準，可以只框選直線道路部分)
+      <img width="2880" height="1704" alt="image" src="https://github.com/user-attachments/assets/0aae7701-9da4-4377-8e35-3fb0569cee8b" />
+  - 執行後會開啟檢視視窗，確認偵測到的消失點
+      <img width="2880" height="1704" alt="image" src="https://github.com/user-attachments/assets/0ee6cab1-0ee3-4911-9cff-0cde9474045e" />
+
+
+  </details>
+      
     
 ## 單應性矩陣
 透過人工標註，計算單應性矩陣(Homography)。
