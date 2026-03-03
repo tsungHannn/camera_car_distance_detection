@@ -171,6 +171,7 @@ def yolo_to_maskrcnn_format(yolo_results, img_shape):
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataPath', type=str, default='data')
+    parser.add_argument('--video_path', type=str, default='output.mp4')
     parser.add_argument('--yolo_model', default='yolo11m-seg.pt') 
     parser.add_argument("--save-vid", action='store_true', default=True)
     parser.add_argument("--save-2d-vid", action='store_true', default=True)
@@ -193,7 +194,7 @@ if __name__=='__main__':
         print(f"Warning: {ref_path} not found.")
 
     # --- 修改點 1: 設定輸入影片名稱為 output.mp4 ---
-    input_video_name = 'output.mp4'
+    input_video_name = args.video_path
     if not os.path.exists(f'{DATA_PATH}/{input_video_name}'): 
         exit(f'{DATA_PATH}/{input_video_name} not exist!')
     if not os.path.exists(f'{DATA_PATH}/config'): 
