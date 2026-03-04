@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-i',
                     '--image-path',
                     help='Path to the input image',
-                    default='data/south26.png')
+                    default='data/test.png')
 parser.add_argument('-lt',
                     '--length-thresh',
                     default=30,
@@ -96,9 +96,9 @@ def apply_roi_mask(image, roi):
     return masked_image, mask
 
 
-def visualize_vps(image_path, vps_2D, title="Vanishing Points Detection"):
+def visualize_vps(image_path, vps_2D, output_path, title="Vanishing Points Detection"):
     """
-    在圖像上顯示消失點，參考 printVP.py 的實現
+    在圖像上標註消失點並保存為圖片
     """
     # 讀取圖像
     image = cv2.imread(image_path)
@@ -130,7 +130,9 @@ def visualize_vps(image_path, vps_2D, title="Vanishing Points Detection"):
     plt.title(title, fontsize=14, weight='bold')
     plt.axis('off')
     plt.tight_layout()
-    plt.show()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"消失點可視化圖片已保存至: {output_path}")
 
 
 args = parser.parse_args()
@@ -208,8 +210,10 @@ def main():
     
     # 可視化消失點
     if visualize and vp2D is not None and len(vp2D) > 0:
-        print("\n正在顯示消失點可視化...")
-        visualize_vps(processed_image_path, vp2D, "Vanishing Points Detection Result")
+        print("\n正在生成消失點可視化圖片...")
+        # 生成輸出文件名
+        output_path = processed_image_path.rsplit('.', 1)[0] + '_vp_result.png'
+        visualize_vps(processed_image_path, vp2D, output_path, "Vanishing Points Detection Result")
 
 
 if __name__ == "__main__":
